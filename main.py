@@ -30,10 +30,10 @@ def make_obbtree(obj):
 def generate_plane(width, z):
     points = vtk.vtkPoints()
     w = width / 2
-    points.InsertNextPoint(-w, -w, z)
-    points.InsertNextPoint(w, -w, z)
-    points.InsertNextPoint(w, w, z)
-    points.InsertNextPoint(-w, w, z)
+    points.InsertNextPoint(-w, z, -w)
+    points.InsertNextPoint(w, z, -w)
+    points.InsertNextPoint(w, z, w)
+    points.InsertNextPoint(-w, z, w)
 
     # Create the polygon
     polygon = vtk.vtkPolygon()
@@ -56,7 +56,7 @@ s1 = generate_sphere(50, 50, center=(-0.2, 0, -1), radius=0.7)
 s2 = generate_sphere(50, 50, center=(0.1, -0.3, 0), radius=0.1)
 s3 = generate_sphere(50, 50, center=(-0.3, 0, 0), radius=0.15)
 # s4 = generate_sphere(50, 50, center=(0, -9000, 0), radius=9000 - 0.7)
-plane, obbtree = generate_plane(9000, -1.7)
+plane, obbtree = generate_plane(9000, -0.7)
 
 obbtrees = [make_obbtree(obj) for obj in (s1, s2, s3)] + [obbtree]
 
@@ -68,45 +68,48 @@ objects = [
     Object(plane, obbtrees[3], glm.vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, glm.vec3(0, -9000, 0)),
 ]
 
-ren = vtk.vtkRenderer()
+# ren = vtk.vtkRenderer()
+#
+# for i, obj in enumerate(objects):
+#     mapper = vtk.vtkPolyDataMapper()
+#     if i != 3:
+#         mapper.SetInputConnection(obj.obj.GetOutputPort())
+#     else:
+#         mapper.SetInputData(obj.obj)
+#     actor = vtk.vtkActor()
+#     actor.SetMapper(mapper)
+#     actor.GetProperty().SetColor(obj.color)
+#     actor.GetProperty().SetAmbient(obj.ambient)
+#     actor.GetProperty().SetDiffuse(obj.diffuse)
+#     actor.GetProperty().SetSpecular(obj.specular)
+#     # actor.AddPosition(obj.position)
+#     ren.AddActor(actor)
+#
+# renWin = vtk.vtkRenderWindow()
+# renWin.AddRenderer(ren)
+# iren = vtk.vtkRenderWindowInteractor()
+# iren.SetRenderWindow(renWin)
+#
+# vtkcamera = vtk.vtkCamera()
+# ren.SetActiveCamera(vtkcamera)
+# cam = Camera(ren.GetActiveCamera())
+# iren.AddObserver("EndInteractionEvent", cam.get_orientation)
+#
+# renWin.SetSize(512, 512)
+# renWin.Render()
+# renWin.SetWindowName("CallBack")
+#
+# iren.Initialize()
+# iren.Start()
+#
+# raise
 
-for i, obj in enumerate(objects):
-    mapper = vtk.vtkPolyDataMapper()
-    if i != 3:
-        mapper.SetInputConnection(obj.obj.GetOutputPort())
-    else:
-        mapper.SetInputData(obj.obj)
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    actor.GetProperty().SetColor(obj.color)
-    actor.GetProperty().SetAmbient(obj.ambient)
-    actor.GetProperty().SetDiffuse(obj.diffuse)
-    actor.GetProperty().SetSpecular(obj.specular)
-    # actor.AddPosition(obj.position)
-    ren.AddActor(actor)
-
-renWin = vtk.vtkRenderWindow()
-renWin.AddRenderer(ren)
-iren = vtk.vtkRenderWindowInteractor()
-iren.SetRenderWindow(renWin)
-
-vtkcamera = vtk.vtkCamera()
-ren.SetActiveCamera(vtkcamera)
-cam = Camera(ren.GetActiveCamera())
-iren.AddObserver("EndInteractionEvent", cam.get_orientation)
-
-renWin.SetSize(512, 512)
-renWin.Render()
-renWin.SetWindowName("CallBack")
-
-iren.Initialize()
-iren.Start()
-
-width = 300
-height = 200
+width = 300 * 5
+height = 200 * 5
 max_depth = 3
 
-camera = glm.vec3(cam.position)
+# camera = glm.vec3(cam.position)
+camera = glm.vec3(0, 0, 1)
 ratio = width / height
 screen = (-1, 1 / ratio, 1, -1 / ratio)
 

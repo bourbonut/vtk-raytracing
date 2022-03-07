@@ -11,7 +11,7 @@ def reflected(vector, axis):
 
 def sphere_intersect(obj, ray_origin, ray_direction):
     p1 = ray_origin
-    p2 = ray_origin + 100000 * ray_direction
+    p2 = ray_origin + 10 * ray_direction
     M = obj.position
     # while glm.length2(p2 - p1) < 2 * glm.length2(M - p1):
     #     p2 += ray_direction
@@ -23,7 +23,7 @@ def sphere_intersect(obj, ray_origin, ray_direction):
     subId = mutable(0)
     iD = obj.obbtree.IntersectWithLine(p1, p2, tolerance, t, x, pcoords, subId)
     if iD == 1:
-        return glm.length(x)
+        return glm.length(x - p1)
     else:
         return None
 
