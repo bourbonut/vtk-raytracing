@@ -21,7 +21,10 @@ def sphere_intersect(obj, ray_origin, ray_direction):
     x = [0.0, 0.0, 0.0]
     pcoords = [0.0, 0.0, 0.0]
     subId = mutable(0)
+    # st = pf()
     iD = obj.obbtree.IntersectWithLine(p1, p2, tolerance, t, x, pcoords, subId)
+    # duration = pf() - st
+    # print(duration)
     if iD == 1:
         return glm.length(x - p1)
     else:
