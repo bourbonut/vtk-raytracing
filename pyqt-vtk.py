@@ -54,6 +54,11 @@ class Window(QWidget):
         grid.addWidget(self.vtkWidget)
         grid.addWidget(self.create_coord("Lumiere"))
 
+        button = QPushButton()
+        button.setText("Raytracing")
+        button.clicked.connect(self.button_action)
+        grid.addWidget(button)
+
         sphere1.actor.GetProperty().SetColor(1, 1, 1)
         sphere2.actor.GetProperty().SetColor(1, 0, 0)
 
@@ -81,7 +86,6 @@ class Window(QWidget):
         self.vtkWidget.GetRenderWindow().Render()
 
     def create_coord(self, title):
-
         groupBox = QGroupBox(title)
 
         radio = QRadioButton("&Activate")
@@ -109,6 +113,9 @@ class Window(QWidget):
         groupBox.setLayout(box)
 
         return groupBox
+
+    def button_action(self):
+        print("ok")
 
 
 if __name__ == "__main__":
