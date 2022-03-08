@@ -39,6 +39,9 @@ class Window(QWidget):
         self.setup_camera()
         self.setup_light()
         self.renderer.SetBackground(colors.GetColor3d("Black"))
+        # self.renderer.SetBackground2(colors.GetColor3d("Black"))
+        # self.renderer.SetBackground(colors.GetColor3d("Silver"))
+        # self.renderer.SetGradientBackground(True)
         self.renderer.ResetCamera()
 
         self.iren.Initialize()
@@ -47,6 +50,8 @@ class Window(QWidget):
         grid.addWidget(self.vtkWidget)
         for actor, label in zip(self.actors, self.labels):
             grid.addWidget(self.create_coord(actor, label))
+
+        grid.addWidget(self.create_coord(self.light, "Light"))
 
         button = QPushButton()
         button.setText("Raytracing")
@@ -99,7 +104,16 @@ class Window(QWidget):
         self.iren.AddObserver("EndInteractionEvent", self.camera.get_orientation)
 
     def setup_light(self):
-        self.light = None
+        self.light = vtk.vtkLight()
+        self.light.SetPosition([5, 5, 5])
+        self.light.SetConeAngle(30)
+        self.light.SetFocalPoint(self.actors[0].GetPosition())
+        self.light.PositionalOn()
+        self.renderer.AddLight(self.light)
+        self.light_actor = vtk.vtkLightActor()
+        self.light_actor.SetLight(self.light)
+        self.renderer.AddViewProp(self.light_actor)
+        self.renderer.UseShadowsOn()
 
     def change_spin(self, value, obj, index):
         coord = list(obj.GetPosition())
@@ -113,9 +127,12 @@ class Window(QWidget):
         radio = QRadioButton("&Activate")
         radio.setChecked(True)
 
+        coord = list(actor.GetPosition())
+
         spins = [QDoubleSpinBox() for _ in range(3)]
         for i, spin in enumerate(spins):
             spin.setMinimum(-500)
+            spin.setValue(coord[i])
             f = partial(self.change_spin, obj=actor, index=i)
             spins[i].textChanged.connect(f)
 
