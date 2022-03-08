@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QGridLayout,
     QGroupBox,
+    QLabel,
     QPushButton,
     QRadioButton,
     QDoubleSpinBox,
@@ -50,19 +51,22 @@ class Window(QWidget):
         grid.addWidget(self.vtkWidget, 0, 0, 1, 0)
         position = self.change_spin_position
         orientation = self.change_spin_orientation
-        i = 1
+        functions = [
+            self.change_spin_position,
+            self.change_spin_orientation,
+            self.change_slider_scale,
+        ]
         for actor, label in zip(self.actors, self.labels):
-            grid.addWidget(self.create_coord(actor, label + " position", position), i, 0)
-            grid.addWidget(self.create_coord(actor, label + " orientation", orientation), i, 1)
-            i += 1
+            grid.addWidget(self.create_coord(actor, label, functions))
 
-        grid.addWidget(self.create_coord(self.light, "Light" + " position", position), i, 0)
+        functions = [self.change_spin_position, None, self.change_slider_intensity]
+        grid.addWidget(self.create_coord(self.light, "Light", functions))
         # grid.addWidget(self.create_coord(self.light, "Light" + " orientation", orientation), i, 1)
 
         button = QPushButton()
         button.setText("Raytracing")
         button.clicked.connect(self.button_action)
-        grid.addWidget(button, i, 1)
+        grid.addWidget(button)
         # grid.addWidget(button, i + 1, 0, i + 1, 0)
 
         self.setLayout(grid)
@@ -134,42 +138,70 @@ class Window(QWidget):
         obj.SetOrientation(*coord)
         self.vtkWidget.GetRenderWindow().Render()
 
-    def create_coord(self, actor, title, function):
+    def change_slider_scale(self, value, obj):
+        obj.SetScale(value)
+        self.vtkWidget.GetRenderWindow().Render()
+
+    def change_slider_intensity(self, value, obj):
+        obj.SetIntensity(value)
+        self.vtkWidget.GetRenderWindow().Render()
+
+    def generate_spins(self, obj, function, coords):
+        spins = [QDoubleSpinBox() for _ in range(3)]
+        for i, spin in enumerate(spins):
+            spin.setMinimum(-500)
+            spin.setValue(coords[i])
+            f = partial(function, obj=obj, index=i)
+            spins[i].textChanged.connect(f)
+        return spins
+
+    def create_coord(self, obj, title, functions):
         groupBox = QGroupBox(title)
 
         radio = QRadioButton("&Activate")
         radio.setChecked(True)
 
-        # if "orientation" in title:
-        #     coord = list(actor.GetOrientation())
-        # else:
-        coord = list(actor.GetPosition())
-
-        spins = [QDoubleSpinBox() for _ in range(3)]
-        for i, spin in enumerate(spins):
-            spin.setMinimum(-500)
-            spin.setValue(coord[i])
-            f = partial(function, obj=actor, index=i)
-            spins[i].textChanged.connect(f)
-
-        slider = QSlider(Qt.Horizontal)
-        slider.setFocusPolicy(Qt.StrongFocus)
-        slider.setTickPosition(QSlider.TicksBothSides)
-        slider.setTickInterval(10)
-        slider.setSingleStep(1)
-
         box = QGridLayout()
+        spins = {}
+        slider = None
+        if functions[0]:
+            coords = list(obj.GetPosition())
+            spins["position"] = self.generate_spins(obj, functions[0], coords)
+        if functions[1]:
+            coords = list(obj.GetOrientation())
+            spins["orientation"] = self.generate_spins(obj, functions[1], coords)
+        if functions[2]:
+            slider = QSlider(Qt.Horizontal)
+            slider.setFocusPolicy(Qt.StrongFocus)
+            slider.setTickPosition(QSlider.TicksBothSides)
+            slider.setTickInterval(10)
+            slider.setSingleStep(1)
+            f = partial(functions[2], obj=obj)
+            slider.valueChanged.connect(f)
+
+        i = 0
+        j = 0
+        for key in spins:
+            label = QLabel(key.title())
+            box.addWidget(label, 2, j)
+            for spin in spins[key]:
+                box.addWidget(spin, 3, i)
+                i += 1
+            j += 3
+
         # box.addWidget(radio, 0, 1, QtCore.Qt.AlignCenter)
-        for i, spin in enumerate(spins):
-            box.addWidget(spin, 2, i)
-        box.addWidget(slider, 3, 0, 3, 0)
+        if slider:
+            box.addWidget(slider, 4, 0, 4, 0)
         groupBox.setLayout(box)
 
         return groupBox
 
     def button_action(self):
-        image = generate_image(self.objects, self.light, self.camera)
+        image = generate_image(
+            self.objects, self.actors, self.light, self.camera, width=300 * 3, height=300 * 3
+        )
         plt.imsave("poutine.png", image)
+        print("Saved.")
 
 
 if __name__ == "__main__":

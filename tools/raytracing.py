@@ -14,7 +14,7 @@ def reflected(vector, axis):
 def sphere_intersect(obj, ray_origin, ray_direction):
     p1 = ray_origin
     p2 = ray_origin + 10 * ray_direction
-    M = obj.position
+    # M = obj.position
     # while glm.length2(p2 - p1) < 2 * glm.length2(M - p1):
     #     p2 += ray_direction
 
@@ -24,7 +24,8 @@ def sphere_intersect(obj, ray_origin, ray_direction):
     pcoords = [0.0, 0.0, 0.0]
     subId = mutable(0)
     # st = pf()
-    iD = obj.obbtree.IntersectWithLine(p1, p2, tolerance, t, x, pcoords, subId)
+
+    iD = obj["obbtree"].IntersectWithLine(p1, p2, tolerance, t, x, pcoords, subId)
     # duration = pf() - st
     # print(duration)
     if iD == 1:
@@ -56,8 +57,34 @@ def nearest_intersected_object(objects, ray_origin, ray_direction):
     return nearest_object, min_distance
 
 
-def generate_image(objects, light, camera, max_depth=3, width=300, height=200):
+class Data:
+    def __init__(self, objects, actors, light, camera):
+        self.objects = []
+        for obj, actor in zip(objects, actors):
+            self.objects.append(
+                {
+                    "obbtree": obj.obbtree,
+                    "ambient": obj.color * obj.ambient,
+                    "diffuse": obj.color * obj.diffuse,
+                    "specular": glm.vec3(1, 1, 1),
+                    "shininess": obj.shininess,
+                    "reflection": obj.shininess,
+                    "position": glm.vec3(actor.GetPosition()),
+                    "orientation": glm.vec3(actor.GetOrientation()),
+                }
+            )
+        self.light = {
+            "position": glm.vec3(light.GetPosition()),
+            "ambient": glm.vec3(1, 1, 1),
+            "diffuse": glm.vec3(1, 1, 1),
+            "specular": glm.vec3(1, 1, 1),
+        }
+        self.camera = glm.vec3(camera.position)
+
+
+def generate_image(objects, actors, light, camera, max_depth=3, width=300, height=200):
     # Parameters
+    data = Data(objects, actors, light, camera)
     ratio = width / height
     screen = (-1, 1 / ratio, 1, -1 / ratio)
 
@@ -69,7 +96,7 @@ def generate_image(objects, light, camera, max_depth=3, width=300, height=200):
             for j, x in enumerate(np.linspace(screen[0], screen[2], width)):
                 # screen is on origin
                 pixel = glm.vec3(x, y, 0)
-                origin = camera
+                origin = data.camera
                 direction = glm.normalize(pixel - origin)
 
                 color = glm.vec3()
@@ -78,21 +105,21 @@ def generate_image(objects, light, camera, max_depth=3, width=300, height=200):
                 for k in range(max_depth):
                     # check for intersections
                     nearest_object, min_distance = nearest_intersected_object(
-                        objects, origin, direction
+                        data.objects, origin, direction
                     )
                     if nearest_object is None:
                         break
 
                     intersection = origin + min_distance * direction
-                    normal_to_surface = glm.normalize(intersection - nearest_object.position)
+                    normal_to_surface = glm.normalize(intersection - nearest_object["position"])
                     shifted_point = intersection + 1e-5 * normal_to_surface
-                    intersection_to_light = glm.normalize(light["position"] - shifted_point)
+                    intersection_to_light = glm.normalize(data.light["position"] - shifted_point)
 
                     _, min_distance = nearest_intersected_object(
-                        objects, shifted_point, intersection_to_light
+                        data.objects, shifted_point, intersection_to_light
                     )
                     intersection_to_light_distance = glm.length(
-                        light["position"] - intersection
+                        data.light["position"] - intersection
                     )
                     is_shadowed = min_distance < intersection_to_light_distance
 
@@ -102,29 +129,27 @@ def generate_image(objects, light, camera, max_depth=3, width=300, height=200):
                     illumination = glm.vec3()
 
                     # ambiant
-                    illumination += (nearest_object.color * nearest_object.ambient) * light[
-                        "ambient"
-                    ]
+                    illumination += nearest_object["ambient"] * data.light["ambient"]
 
                     # diffuse
                     illumination += (
-                        (nearest_object.color * nearest_object.diffuse)
-                        * light["diffuse"]
+                        nearest_object["diffuse"]
+                        * data.light["diffuse"]
                         * glm.dot(intersection_to_light, normal_to_surface)
                     )
 
                     # specular
-                    intersection_to_camera = glm.normalize(camera - intersection)
+                    intersection_to_camera = glm.normalize(data.camera - intersection)
                     H = glm.normalize(intersection_to_light + intersection_to_camera)
                     illumination += (
-                        (glm.vec3(1) * nearest_object.specular)
-                        * light["specular"]
-                        * glm.dot(normal_to_surface, H) ** (nearest_object.shininess / 4)
+                        nearest_object["specular"]
+                        * data.light["specular"]
+                        * glm.dot(normal_to_surface, H) ** (nearest_object["shininess"] / 4)
                     )
 
                     # reflection
                     color += reflection * illumination
-                    reflection *= nearest_object.reflection
+                    reflection *= nearest_object["reflection"]
 
                     origin = shifted_point
                     direction = reflected(direction, normal_to_surface)
