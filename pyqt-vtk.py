@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
     QWidget,
     QSlider,
 )
+from functools import partial
 
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
@@ -39,44 +40,19 @@ def generate_sphere(phi, theta, center=(0.0, 0.0, 0.0), radius=5.0):
     return Sphere(source, mapper, actor)
 
 
-keymap = {}
-for key, value in vars(Qt).items():
-    if isinstance(value, Qt.Key):
-        keymap[value] = key.partition("_")[2]
-
-modmap = {
-    Qt.ControlModifier: keymap[Qt.Key_Control],
-    Qt.AltModifier: keymap[Qt.Key_Alt],
-    Qt.ShiftModifier: keymap[Qt.Key_Shift],
-    Qt.MetaModifier: keymap[Qt.Key_Meta],
-    Qt.GroupSwitchModifier: keymap[Qt.Key_AltGr],
-    Qt.KeypadModifier: keymap[Qt.Key_NumLock],
-}
-
-
-def keyevent_to_string(event):
-    sequence = []
-    for modifier, text in modmap.items():
-        if event.modifiers() & modifier:
-            sequence.append(text)
-    key = keymap.get(event.key(), event.text())
-    if key not in sequence:
-        sequence.append(key)
-    return "+".join(sequence)
-
-
 class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
         self.frame = QtWidgets.QFrame()
         self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
 
-        grid = QGridLayout()
-        grid.addWidget(self.vtkWidget)
-        grid.addWidget(self.createExampleGroup())
-
         sphere1 = generate_sphere(50, 50)
         sphere2 = generate_sphere(50, 50, center=(0.0, 15.0, 0), radius=10.0)
+        self.sphere = sphere1
+
+        grid = QGridLayout()
+        grid.addWidget(self.vtkWidget)
+        grid.addWidget(self.create_coord("Lumiere"))
 
         sphere1.actor.GetProperty().SetColor(1, 1, 1)
         sphere2.actor.GetProperty().SetColor(1, 0, 0)
@@ -91,41 +67,33 @@ class Window(QWidget):
         renderer.SetBackground(colors.GetColor3d("Black"))
         renderer.ResetCamera()
 
-        # renderWindow = vtk.vtkRenderWindow()
-        # renderWindow.AddRenderer(renderer)
-        #
-        # renderWindowInteractor = vtk.vtkRenderWindowInteractor()
-        #
-        # renderWindowInteractor.SetRenderWindow(renderWindow)
-        # renderWindowInteractor.Initialize()
-        # renderWindowInteractor.Start()
-
         self.iren.Initialize()
 
         self.setLayout(grid)
 
         self.setWindowTitle("VTK Raytracing")
-        self.resize(1200, 900)
+        self.resize(900, 600)
 
-    def keyPressEvent(self, event):
-        print(keyevent_to_string(event))
+    def change_spin(self, value, obj, index):
+        coord = list(obj.GetCenter())
+        coord[index] = float(value.replace(",", "."))
+        obj.SetCenter(*coord)
+        self.vtkWidget.GetRenderWindow().Render()
 
-    def change(self, i):
-        print(i)
+    def create_coord(self, title):
 
-    def createExampleGroup(self):
-        groupBox = QGroupBox("Slider Example")
+        groupBox = QGroupBox(title)
 
-        radio1 = QRadioButton("&Test")
+        radio = QRadioButton("&Activate")
+        radio.setChecked(True)
 
-        group = QGridLayout()
+        spins = [QDoubleSpinBox() for _ in range(3)]
+        for i, spin in enumerate(spins):
+            spin.setMinimum(-500)
+            f = partial(self.change_spin, obj=self.sphere.source, index=i)
+            spins[i].textChanged.connect(f)
 
-        spin1 = QDoubleSpinBox()
-        spin1.textChanged.connect(self.change)
-        spin2 = QDoubleSpinBox()
-        spin2.textChanged.connect(self.change)
-        spin3 = QDoubleSpinBox()
-        spin3.textChanged.connect(self.change)
+        # self.sphere.source
 
         slider = QSlider(Qt.Horizontal)
         slider.setFocusPolicy(Qt.StrongFocus)
@@ -133,19 +101,12 @@ class Window(QWidget):
         slider.setTickInterval(10)
         slider.setSingleStep(1)
 
-        radio1.setChecked(True)
-
-        # group.addWidget(spin2, 2, 3)
-        # group.addWidget(spin3, 3, 3)
-
-        vbox = QGridLayout()
-        vbox.addWidget(radio1, 0, 0, 1, 0, QtCore.Qt.AlignCenter)
-        # vbox.addWidget(slider, 0, 0, 3, 0, QtCore.Qt.AlignCenter)
-        vbox.addWidget(spin1, 2, 0)
-        vbox.addWidget(spin2, 2, 1)
-        vbox.addWidget(spin3, 2, 3)
-        # vbox.addStretch(1)
-        groupBox.setLayout(vbox)
+        box = QGridLayout()
+        box.addWidget(radio, 0, 1, QtCore.Qt.AlignCenter)
+        for i, spin in enumerate(spins):
+            box.addWidget(spin, 2, i)
+        box.addWidget(slider, 3, 0, 3, 0)
+        groupBox.setLayout(box)
 
         return groupBox
 
