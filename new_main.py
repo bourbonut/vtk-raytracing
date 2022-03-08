@@ -47,16 +47,23 @@ class Window(QWidget):
         self.iren.Initialize()
 
         grid = QGridLayout()
-        grid.addWidget(self.vtkWidget)
+        grid.addWidget(self.vtkWidget, 0, 0, 1, 0)
+        position = self.change_spin_position
+        orientation = self.change_spin_orientation
+        i = 1
         for actor, label in zip(self.actors, self.labels):
-            grid.addWidget(self.create_coord(actor, label))
+            grid.addWidget(self.create_coord(actor, label + " position", position), i, 0)
+            grid.addWidget(self.create_coord(actor, label + " orientation", orientation), i, 1)
+            i += 1
 
-        grid.addWidget(self.create_coord(self.light, "Light"))
+        grid.addWidget(self.create_coord(self.light, "Light" + " position", position), i, 0)
+        # grid.addWidget(self.create_coord(self.light, "Light" + " orientation", orientation), i, 1)
 
         button = QPushButton()
         button.setText("Raytracing")
         button.clicked.connect(self.button_action)
-        grid.addWidget(button)
+        grid.addWidget(button, i, 1)
+        # grid.addWidget(button, i + 1, 0, i + 1, 0)
 
         self.setLayout(grid)
 
@@ -106,8 +113,8 @@ class Window(QWidget):
     def setup_light(self):
         self.light = vtk.vtkLight()
         self.light.SetPosition([5, 5, 5])
-        self.light.SetConeAngle(30)
-        self.light.SetFocalPoint(self.actors[0].GetPosition())
+        # self.light.SetConeAngle(30)
+        # self.light.SetFocalPoint(self.actors[0].GetPosition())
         self.light.PositionalOn()
         self.renderer.AddLight(self.light)
         self.light_actor = vtk.vtkLightActor()
@@ -115,25 +122,34 @@ class Window(QWidget):
         self.renderer.AddViewProp(self.light_actor)
         self.renderer.UseShadowsOn()
 
-    def change_spin(self, value, obj, index):
+    def change_spin_position(self, value, obj, index):
         coord = list(obj.GetPosition())
         coord[index] = float(value.replace(",", "."))
         obj.SetPosition(*coord)
         self.vtkWidget.GetRenderWindow().Render()
 
-    def create_coord(self, actor, title):
+    def change_spin_orientation(self, value, obj, index):
+        coord = list(obj.GetOrientation())
+        coord[index] = float(value.replace(",", "."))
+        obj.SetOrientation(*coord)
+        self.vtkWidget.GetRenderWindow().Render()
+
+    def create_coord(self, actor, title, function):
         groupBox = QGroupBox(title)
 
         radio = QRadioButton("&Activate")
         radio.setChecked(True)
 
+        # if "orientation" in title:
+        #     coord = list(actor.GetOrientation())
+        # else:
         coord = list(actor.GetPosition())
 
         spins = [QDoubleSpinBox() for _ in range(3)]
         for i, spin in enumerate(spins):
             spin.setMinimum(-500)
             spin.setValue(coord[i])
-            f = partial(self.change_spin, obj=actor, index=i)
+            f = partial(function, obj=actor, index=i)
             spins[i].textChanged.connect(f)
 
         slider = QSlider(Qt.Horizontal)
