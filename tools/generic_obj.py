@@ -62,10 +62,10 @@ def generate_plane(width, z):
     vtknormals.SetNumberOfComponents(3)
     vtknormals.SetNumberOfTuples(polygonPolyData.GetNumberOfPoints())
 
-    vtknormals.SetTuple(0, [0, 1, 0])
-    vtknormals.SetTuple(1, [0, 1, 0])
-    vtknormals.SetTuple(2, [0, 1, 0])
-    vtknormals.SetTuple(3, [0, 1, 0])
+    vtknormals.SetTuple(0, [0, -1, 0])
+    vtknormals.SetTuple(1, [0, -1, 0])
+    vtknormals.SetTuple(2, [0, -1, 0])
+    vtknormals.SetTuple(3, [0, -1, 0])
 
     polygonPolyData.GetCellData().SetNormals(vtknormals)
 
@@ -74,3 +74,13 @@ def generate_plane(width, z):
     obbtree.BuildLocator()
 
     return polygonPolyData, obbtree
+
+
+def open_stl(filename):
+    reader = vtk.vtkSTLReader()
+    reader.SetFileName(filename)
+    reader.Update()
+
+    obbtree = make_obbtree(reader)
+
+    return reader, obbtree

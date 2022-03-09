@@ -61,13 +61,11 @@ class Window(QWidget):
 
         functions = [self.change_spin_position, None, self.change_slider_intensity]
         grid.addWidget(self.create_coord(self.light, "Light", functions))
-        # grid.addWidget(self.create_coord(self.light, "Light" + " orientation", orientation), i, 1)
 
         button = QPushButton()
         button.setText("Raytracing")
         button.clicked.connect(self.button_action)
         grid.addWidget(button)
-        # grid.addWidget(button, i + 1, 0, i + 1, 0)
 
         self.setLayout(grid)
 
@@ -75,20 +73,21 @@ class Window(QWidget):
         self.resize(900, 1000)
 
     def generate_objects(self):
-        s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
-        s2 = generate_sphere(20, 20, center=(0.1, -0.3, 0), radius=0.1)
-        s3 = generate_sphere(20, 20, center=(-0.3, 0, 0), radius=0.15)
-        plane, obbtree = generate_plane(20, -0.7)
+        # s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
+        bgear, obbtree_bgear = open_stl("bevel_gear.stl")
+        s2 = generate_sphere(20, 20, center=(5, -5, 0), radius=5)
+        s3 = generate_sphere(20, 20, center=(-6, 0, 0), radius=5)
+        plane, obbtree = generate_plane(100, -20)
 
         vec3 = glm.vec3
-        obbtrees = [make_obbtree(obj) for obj in (s1, s2, s3)] + [obbtree]
-        obj1 = Object(s1, obbtrees[0], vec3(1, 0, 0), 0.1, 0.7, 1, 100, 0.5, vec3(-0.2, 0, -1))
-        obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0.1, -0.3, 0))
-        obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-0.3, 0, 0))
+        obbtrees = [obbtree_bgear] + [make_obbtree(obj) for obj in (s2, s3)] + [obbtree]
+        obj1 = Object(bgear, obbtrees[0], vec3(1, 1, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0, 0, 0))
+        obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(5, -10, 0))
+        obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-6, 0, 0))
         obj4 = Object(plane, obbtrees[3], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
 
         self.objects = [obj1, obj2, obj3, obj4]
-        self.labels = ("Red sphere", "Violet sphere", "Green sphere", "White plane")
+        self.labels = ("Bevel gear", "Violet sphere", "Green sphere", "White plane")
 
     def setup_objects(self):
         self.actors = []
@@ -112,13 +111,14 @@ class Window(QWidget):
         vtkcamera = vtk.vtkCamera()
         self.renderer.SetActiveCamera(vtkcamera)
         self.camera = Camera(self.renderer.GetActiveCamera())
+        self.camera.cam.SetPosition(0, 0, -1)
         self.iren.AddObserver("EndInteractionEvent", self.camera.get_orientation)
 
     def setup_light(self):
         self.light = vtk.vtkLight()
-        self.light.SetPosition([5, 5, 5])
-        # self.light.SetConeAngle(30)
-        # self.light.SetFocalPoint(self.actors[0].GetPosition())
+        self.light.SetPosition([-50, 50, -50])
+        self.light.SetConeAngle(30)
+        self.light.SetFocalPoint(self.actors[0].GetPosition())
         self.light.PositionalOn()
         self.renderer.AddLight(self.light)
         self.light_actor = vtk.vtkLightActor()

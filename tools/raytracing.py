@@ -37,7 +37,7 @@ def reflected(vector, axis):
 
 def sphere_intersect(obj, ray_origin, ray_direction):
     p1 = ray_origin
-    p2 = ray_origin + 10 * ray_direction
+    p2 = ray_origin + 500 * ray_direction
 
     points = vtk.vtkPoints()
     cellIds = vtk.vtkIdList()
@@ -107,8 +107,8 @@ class Data:
         self.objects = []
         for obj, actor in zip(objects, actors):
             pos = glm.vec3(actor.GetPosition())
-            if glm.length(pos) == 0:
-                pos = glm.vec3(0, -9000, 0)
+            # if glm.length(pos) == 0:
+            # pos = glm.vec3(0, -9000, 0)
             if isinstance(obj.obj, vtk.vtkPolyData):
                 normals = obj.obj.GetCellData().GetNormals()
             else:
@@ -140,7 +140,8 @@ class Data:
             glm.vec3(1, 1, 1),
             glm.vec3(1, 1, 1),
         )
-        self.camera = glm.vec3(camera.position)
+        self.camera = glm.vec3(camera.position) * 50
+        # self.camera = glm.vec3(0, 0, -1)
         self.infos()
 
     def infos(self):
