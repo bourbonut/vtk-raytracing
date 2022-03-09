@@ -149,7 +149,7 @@ class Window(QWidget):
     def generate_spins(self, obj, function, coords):
         spins = [QDoubleSpinBox() for _ in range(3)]
         for i, spin in enumerate(spins):
-            spin.setMinimum(-500)
+            spin.setMinimum(-50000)
             spin.setValue(coords[i])
             f = partial(function, obj=obj, index=i)
             spins[i].textChanged.connect(f)
@@ -198,7 +198,7 @@ class Window(QWidget):
 
     def button_action(self):
         image = generate_image(
-            self.objects, self.actors, self.light, self.camera, width=300 * 3, height=300 * 3
+            self.objects, self.actors, self.light, self.camera, width=300 * 3, height=200 * 3
         )
         plt.imsave("poutine.png", image)
         print("Saved.")

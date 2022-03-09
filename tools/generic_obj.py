@@ -58,4 +58,19 @@ def generate_plane(width, z):
     polygonPolyData.SetPoints(points)
     polygonPolyData.SetPolys(polygons)
 
-    return polygonPolyData, polygon
+    vtknormals = vtk.vtkDoubleArray()
+    vtknormals.SetNumberOfComponents(3)
+    vtknormals.SetNumberOfTuples(polygonPolyData.GetNumberOfPoints())
+
+    vtknormals.SetTuple(0, [0, 1, 0])
+    vtknormals.SetTuple(1, [0, 1, 0])
+    vtknormals.SetTuple(2, [0, 1, 0])
+    vtknormals.SetTuple(3, [0, 1, 0])
+
+    polygonPolyData.GetCellData().SetNormals(vtknormals)
+
+    obbtree = vtk.vtkOBBTree()
+    obbtree.SetDataSet(polygonPolyData)
+    obbtree.BuildLocator()
+
+    return polygonPolyData, obbtree

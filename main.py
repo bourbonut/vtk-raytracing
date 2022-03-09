@@ -1,7 +1,6 @@
 import vtk
-from camera import Camera
-from object_class import Object
 from tools import *
+from tools.raytracing import *
 from rich.progress import Progress
 import glm
 import numpy as np
@@ -52,9 +51,9 @@ def generate_plane(width, z):
     return polygonPolyData, polygon
 
 
-s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
-s2 = generate_sphere(20, 20, center=(0.1, -0.3, 0), radius=0.1)
-s3 = generate_sphere(20, 20, center=(-0.3, 0, 0), radius=0.15)
+s1 = generate_sphere(3 * 50, 3 * 50, center=(-0.2, 0, -1), radius=0.7)
+s2 = generate_sphere(3 * 50, 3 * 50, center=(0.1, -0.3, 0), radius=0.1)
+s3 = generate_sphere(3 * 50, 3 * 50, center=(-0.3, 0, 0), radius=0.15)
 # s4 = generate_sphere(50, 50, center=(0, -9000, 0), radius=9000 - 0.7)
 plane, obbtree = generate_plane(9000, -0.7)
 
@@ -68,41 +67,41 @@ objects = [
     Object(plane, obbtrees[3], glm.vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, glm.vec3(0, -9000, 0)),
 ]
 
-# ren = vtk.vtkRenderer()
-#
-# for i, obj in enumerate(objects):
-#     mapper = vtk.vtkPolyDataMapper()
-#     if i != 3:
-#         mapper.SetInputConnection(obj.obj.GetOutputPort())
-#     else:
-#         mapper.SetInputData(obj.obj)
-#     actor = vtk.vtkActor()
-#     actor.SetMapper(mapper)
-#     actor.GetProperty().SetColor(obj.color)
-#     actor.GetProperty().SetAmbient(obj.ambient)
-#     actor.GetProperty().SetDiffuse(obj.diffuse)
-#     actor.GetProperty().SetSpecular(obj.specular)
-#     # actor.AddPosition(obj.position)
-#     ren.AddActor(actor)
-#
-# renWin = vtk.vtkRenderWindow()
-# renWin.AddRenderer(ren)
-# iren = vtk.vtkRenderWindowInteractor()
-# iren.SetRenderWindow(renWin)
-#
-# vtkcamera = vtk.vtkCamera()
-# ren.SetActiveCamera(vtkcamera)
-# cam = Camera(ren.GetActiveCamera())
-# iren.AddObserver("EndInteractionEvent", cam.get_orientation)
-#
-# renWin.SetSize(512, 512)
-# renWin.Render()
-# renWin.SetWindowName("CallBack")
-#
-# iren.Initialize()
-# iren.Start()
-#
-# raise
+ren = vtk.vtkRenderer()
+
+for i, obj in enumerate(objects):
+    mapper = vtk.vtkPolyDataMapper()
+    if i != 3:
+        mapper.SetInputConnection(obj.obj.GetOutputPort())
+    else:
+        mapper.SetInputData(obj.obj)
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetColor(obj.color)
+    actor.GetProperty().SetAmbient(obj.ambient)
+    actor.GetProperty().SetDiffuse(obj.diffuse)
+    actor.GetProperty().SetSpecular(obj.specular)
+    # actor.AddPosition(obj.position)
+    ren.AddActor(actor)
+
+renWin = vtk.vtkRenderWindow()
+renWin.AddRenderer(ren)
+iren = vtk.vtkRenderWindowInteractor()
+iren.SetRenderWindow(renWin)
+
+vtkcamera = vtk.vtkCamera()
+ren.SetActiveCamera(vtkcamera)
+cam = Camera(ren.GetActiveCamera())
+iren.AddObserver("EndInteractionEvent", cam.get_orientation)
+
+renWin.SetSize(512, 512)
+renWin.Render()
+renWin.SetWindowName("CallBack")
+
+iren.Initialize()
+iren.Start()
+
+raise
 
 width = 300 * 3
 height = 200 * 3
