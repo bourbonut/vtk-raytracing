@@ -141,7 +141,6 @@ class Data:
             glm.vec3(1, 1, 1),
         )
         self.camera = glm.vec3(camera.position)
-        # self.camera = glm.vec3(0, 0, -1)
         self.infos()
 
     def infos(self):
