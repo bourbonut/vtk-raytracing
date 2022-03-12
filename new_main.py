@@ -74,29 +74,32 @@ class Window(QWidget):
 
     def generate_objects(self):
         # s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
-        bgear, obbtree_bgear = open_stl("bevel_gear.stl")
-        s2 = generate_sphere(20, 20, center=(5, -5, 0), radius=5)
-        s3 = generate_sphere(20, 20, center=(-6, 0, 0), radius=5)
-        plane, obbtree = generate_plane(100, -20)
+        bgear, obbtree_bgear = open_stl("bevel_gear2.stl")
+        s2 = generate_sphere(20, 20, center=(0.1, -0.3, 0), radius=5)
+        s3 = generate_sphere(20, 20, center=(-0.3, 0, 0), radius=5)
+        plane, obbtree = generate_plane(100, -0.7)
 
         vec3 = glm.vec3
-        obbtrees = [obbtree_bgear] + [make_obbtree(obj) for obj in (s2, s3)] + [obbtree]
+        obbtrees = [
+            obbtree_bgear,
+            obbtree,
+        ]  # + [make_obbtree(obj) for obj in (s2, s3)] + [obbtree]
         obj1 = Object(bgear, obbtrees[0], vec3(1, 1, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0, 0, 0))
-        obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(5, -10, 0))
-        obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-6, 0, 0))
-        obj4 = Object(plane, obbtrees[3], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
+        # obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0.1, -0.3, 0))
+        # obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-6, 0, 0))
+        # obj4 = Object(plane, obbtrees[1], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
 
-        self.objects = [obj1, obj2, obj3, obj4]
-        self.labels = ("Bevel gear", "Violet sphere", "Green sphere", "White plane")
+        self.objects = [obj1]  # , obj4]
+        self.labels = ("Bevel gear",)  # "White plane")  # "Violet sphere", "Green sphere",
 
     def setup_objects(self):
         self.actors = []
         for i, obj in enumerate(self.objects):
             mapper = vtk.vtkPolyDataMapper()
-            if i != 3:
-                mapper.SetInputConnection(obj.obj.GetOutputPort())
-            else:
+            if isinstance(obj.obj, vtk.vtkPolyData):
                 mapper.SetInputData(obj.obj)
+            else:
+                mapper.SetInputConnection(obj.obj.GetOutputPort())
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
             actor.GetProperty().SetColor(obj.color)
@@ -111,12 +114,12 @@ class Window(QWidget):
         vtkcamera = vtk.vtkCamera()
         self.renderer.SetActiveCamera(vtkcamera)
         self.camera = Camera(self.renderer.GetActiveCamera())
-        self.camera.cam.SetPosition(0, 0, -1)
+        self.camera.cam.SetPosition(0, 0, 1)
         self.iren.AddObserver("EndInteractionEvent", self.camera.get_orientation)
 
     def setup_light(self):
         self.light = vtk.vtkLight()
-        self.light.SetPosition([-50, 50, -50])
+        self.light.SetPosition([0, 0, 30])
         self.light.SetConeAngle(30)
         self.light.SetFocalPoint(self.actors[0].GetPosition())
         self.light.PositionalOn()

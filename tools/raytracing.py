@@ -1,4 +1,4 @@
-from math import sqrt, inf
+from math import sqrt, inf, acos
 import numpy as np
 import glm
 import vtk
@@ -140,7 +140,7 @@ class Data:
             glm.vec3(1, 1, 1),
             glm.vec3(1, 1, 1),
         )
-        self.camera = glm.vec3(camera.position) * 50
+        self.camera = glm.vec3(camera.position)
         # self.camera = glm.vec3(0, 0, -1)
         self.infos()
 
@@ -151,11 +151,33 @@ class Data:
             print(f"Object {i} position: {obj.position}")
 
 
+def change_reference(ref):
+    Z = glm.vec3(0, 0, 1)
+    if glm.length(ref - Z) == 0:
+        translation = glm.identity(glm.mat4)
+    else:
+        translation = glm.translate(ref - Z)
+
+    if glm.length(glm.cross(ref, Z)) == 0:
+        rotation = glm.identity(glm.mat4)
+    else:
+        mag = glm.length(ref)
+        angle = acos(glm.dot(Z, ref) / mag) if mag else 0
+        axis = glm.cross(Z, ref)
+        rotation = glm.rotate(angle, axis)
+
+    return rotation, translation
+
+
 def generate_image(objects, actors, light, camera, max_depth=3, width=300, height=200):
     # Parameters
     data = Data(objects, actors, light, camera)
     ratio = width / height
     screen = (-1, 1 / ratio, 1, -1 / ratio)
+
+    matrix_rot, matrix_trans = change_reference(glm.normalize(data.camera))
+
+    zoom = 20
 
     # Initialization of the image
     image = np.zeros((height, width, 3))
@@ -164,8 +186,8 @@ def generate_image(objects, actors, light, camera, max_depth=3, width=300, heigh
         for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
             for j, x in enumerate(np.linspace(screen[0], screen[2], width)):
                 # screen is on origin
-                pixel = glm.vec3(x, y, 0)
-                origin = data.camera
+                pixel = matrix_rot * glm.vec3(x, y, 0) * zoom
+                origin = matrix_trans * data.camera * zoom
                 direction = glm.normalize(pixel - origin)
 
                 color = glm.vec3()
