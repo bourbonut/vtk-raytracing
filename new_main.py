@@ -20,10 +20,30 @@ from PyQt5.QtWidgets import (
 
 import sys
 from functools import partial
+from itertools import starmap, repeat
 from tools import *
 
 
 class Window(QWidget):
+
+    PLANE_NORMALS = [
+        glm.vec3(0, 1, 0),
+        glm.vec3(0, 0, 1),
+        # glm.vec3(1, 0, 0),
+        glm.vec3(0, -1, 0),
+        # glm.vec3(0, 0, -1),
+        glm.vec3(-1, 0, 0),
+    ]
+
+    PLANE_TRANSLATIONS = [
+        glm.vec3(0, 0, 0),
+        glm.vec3(0, -30, -30),
+        # glm.vec3(-30, -30, 0),
+        glm.vec3(0, 100, 0),
+        # glm.vec3(0, -30, 30),
+        glm.vec3(30, -30, 0),
+    ]
+
     def __init__(self):
         super(Window, self).__init__()
         self.generate_objects()
@@ -40,57 +60,76 @@ class Window(QWidget):
         self.setup_camera()
         self.setup_light()
         self.renderer.SetBackground(colors.GetColor3d("Black"))
-        # self.renderer.SetBackground2(colors.GetColor3d("Black"))
-        # self.renderer.SetBackground(colors.GetColor3d("Silver"))
-        # self.renderer.SetGradientBackground(True)
         self.renderer.ResetCamera()
 
         self.iren.Initialize()
 
         grid = QGridLayout()
-        grid.addWidget(self.vtkWidget, 0, 0, 1, 0)
+        i = 0
+        grid.addWidget(self.vtkWidget, 0, 0, 0, 1)
         position = self.change_spin_position
         orientation = self.change_spin_orientation
         functions = [
             self.change_spin_position,
             self.change_spin_orientation,
             self.change_slider_scale,
+            lambda obj: obj.GetScale()[0] * 10,
         ]
         for actor, label in zip(self.actors, self.labels):
-            grid.addWidget(self.create_coord(actor, label, functions))
+            grid.addWidget(self.create_coord(actor, label, functions), i, 1)
+            i += 1
 
-        functions = [self.change_spin_position, None, self.change_slider_intensity]
-        grid.addWidget(self.create_coord(self.light, "Light", functions))
+        functions = [
+            self.change_spin_position,
+            None,
+            self.change_slider_intensity,
+            lambda obj: obj.GetIntensity() * 10,
+        ]
+        grid.addWidget(self.create_coord(self.light, "Light", functions), i, 1)
+        i += 1
 
         button = QPushButton()
         button.setText("Raytracing")
         button.clicked.connect(self.button_action)
-        grid.addWidget(button)
+        grid.addWidget(button, i, 1)
 
         self.setLayout(grid)
 
         self.setWindowTitle("VTK Raytracing")
-        self.resize(900, 1000)
+        self.resize(1500, 800)
 
     def generate_objects(self):
         # s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
         bgear, obbtree_bgear = open_stl("bevel_gear2.stl")
-        s2 = generate_sphere(20, 20, center=(0.1, -0.3, 0), radius=5)
-        s3 = generate_sphere(20, 20, center=(-0.3, 0, 0), radius=5)
-        plane, obbtree = generate_plane(100, -20)
-
+        s2 = generate_sphere(20, 20, center=(5, 0, -4), radius=5)
+        s3 = generate_sphere(20, 20, center=(-6, -2, -3), radius=3)
         vec3 = glm.vec3
-        obbtrees = [
-            obbtree_bgear,
-            obbtree,
-        ]  # + [make_obbtree(obj) for obj in (s2, s3)] + [obbtree]
-        obj1 = Object(bgear, obbtrees[0], vec3(1, 1, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0, 0, 0))
-        # obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0.1, -0.3, 0))
-        # obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-6, 0, 0))
-        obj4 = Object(plane, obbtrees[1], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
+        planes_obbtrees = starmap(
+            generate_plane,
+            zip(repeat(100), repeat(-20), self.PLANE_NORMALS, self.PLANE_TRANSLATIONS),
+        )
+        # plane, obbtree = generate_plane(100, -20)
+        # plane2, obbtree2 = generate_plane(100, -30, glm.vec3(0, 0, 1), glm.vec3(0, -20, -30))
 
-        self.objects = [obj1, obj4]
-        self.labels = ("Bevel gear", "White plane")  # "Violet sphere", "Green sphere",
+        obbtrees = [obbtree_bgear] + [make_obbtree(obj) for obj in (s2, s3)]
+        # obbtrees = (
+        #     [obbtree_bgear] + [make_obbtree(obj) for obj in (s2, s3)] + [obbtree, obbtree2]
+        # )
+        obj1 = Object(bgear, obbtrees[0], vec3(1, 1, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0, 0, 0))
+        obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(5, 0, -4))
+        obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-6, -2, -3))
+        # obj4 = Object(plane, obbtrees[3], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
+        # obj5 = Object(plane2, obbtrees[4], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
+        objs = [
+            Object(plane, obbtree, vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
+            for plane, obbtree in planes_obbtrees
+        ]
+        self.objects = [obj1, obj2, obj3] + objs
+
+        # self.objects = [obj1, obj2, obj3, obj4, obj5]
+        self.labels = ["Bevel gear", "Violet sphere", "Green sphere"] + ["White plane"] * len(
+            objs
+        )
 
     def setup_objects(self):
         self.actors = []
@@ -106,7 +145,7 @@ class Window(QWidget):
             actor.GetProperty().SetAmbient(obj.ambient)
             actor.GetProperty().SetDiffuse(obj.diffuse)
             actor.GetProperty().SetSpecular(obj.specular)
-            actor.AddPosition(obj.position)
+            actor.SetPosition(obj.position)
             self.actors.append(actor)
             self.renderer.AddActor(actor)
 
@@ -114,13 +153,13 @@ class Window(QWidget):
         vtkcamera = vtk.vtkCamera()
         self.renderer.SetActiveCamera(vtkcamera)
         self.camera = Camera(self.renderer.GetActiveCamera())
-        self.camera.cam.SetPosition(0, 0.5, 1)
+        self.camera.cam.SetPosition(-0.5, 0.2, 1)
         self.camera.position = self.camera.cam.GetPosition()
         self.iren.AddObserver("EndInteractionEvent", self.camera.get_orientation)
 
     def setup_light(self):
         self.light = vtk.vtkLight()
-        self.light.SetPosition([0, 12, 14])
+        self.light.SetPosition([18, 18, 18])
         self.light.SetConeAngle(30)
         self.light.SetFocalPoint(self.actors[0].GetPosition())
         self.light.PositionalOn()
@@ -143,17 +182,18 @@ class Window(QWidget):
         self.vtkWidget.GetRenderWindow().Render()
 
     def change_slider_scale(self, value, obj):
-        obj.SetScale(value)
+        obj.SetScale(value / 10)
         self.vtkWidget.GetRenderWindow().Render()
 
     def change_slider_intensity(self, value, obj):
-        obj.SetIntensity(value)
+        obj.SetIntensity(value / 10)
         self.vtkWidget.GetRenderWindow().Render()
 
     def generate_spins(self, obj, function, coords):
         spins = [QDoubleSpinBox() for _ in range(3)]
         for i, spin in enumerate(spins):
-            spin.setMinimum(-50000)
+            spin.setMinimum(-5000)
+            spin.setMaximum(5000)
             spin.setValue(coords[i])
             f = partial(function, obj=obj, index=i)
             spins[i].textChanged.connect(f)
@@ -180,6 +220,7 @@ class Window(QWidget):
             slider.setTickPosition(QSlider.TicksBothSides)
             slider.setTickInterval(10)
             slider.setSingleStep(1)
+            slider.setValue(functions[3](obj))
             f = partial(functions[2], obj=obj)
             slider.valueChanged.connect(f)
 
@@ -204,7 +245,7 @@ class Window(QWidget):
         image = generate_image(
             self.objects, self.actors, self.light, self.camera, width=300 * 3, height=200 * 3
         )
-        plt.imsave("poutine.png", image)
+        plt.imsave("legrandchelem.png", image)
         print("Saved.")
 
 

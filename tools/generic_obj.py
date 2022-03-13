@@ -1,5 +1,7 @@
 from collections import namedtuple
 import vtk
+import glm
+from math import acos, pi
 
 Object = namedtuple(
     "Object",
@@ -36,19 +38,34 @@ def make_obbtree(obj):
     return ot
 
 
-def generate_plane(width, z):
+def generate_plane(width, z, normal=glm.vec3(0, 1, 0), translation=glm.vec3(0, 0, 0)):
+
+    Y = glm.vec3(0, 1, 0)
+    if glm.length(glm.cross(normal, Y)) == 0:
+        rotation = glm.identity(glm.mat4)
+    elif glm.length(normal + Y) == 0:
+        rotation = glm.rotate(pi)
+    else:
+        mag = glm.length(normal)
+        angle = acos(glm.dot(Y, normal) / mag) if mag else 0
+        axis = glm.cross(Y, normal)
+        rotation = glm.rotate(angle, axis)
+
+    rotation *= glm.translate(translation)
+
     points = vtk.vtkPoints()
     w = width / 2
-    points.InsertNextPoint(-w, z, -w)
-    points.InsertNextPoint(w, z, -w)
-    points.InsertNextPoint(w, z, w)
-    points.InsertNextPoint(-w, z, w)
+    p = 4
+    points.InsertNextPoint(rotation * glm.vec3(-w, z, -w))
+    points.InsertNextPoint(rotation * glm.vec3(w, z, -w))
+    points.InsertNextPoint(rotation * glm.vec3(w, z, w))
+    points.InsertNextPoint(rotation * glm.vec3(-w, z, w))
 
     # Create the polygon
     polygon = vtk.vtkPolygon()
     polygon.GetPoints().DeepCopy(points)
-    polygon.GetPointIds().SetNumberOfIds(4)
-    for i in range(4):
+    polygon.GetPointIds().SetNumberOfIds(p)
+    for i in range(p):
         polygon.GetPointIds().SetId(i, i)
 
     polygons = vtk.vtkCellArray()
@@ -62,10 +79,8 @@ def generate_plane(width, z):
     vtknormals.SetNumberOfComponents(3)
     vtknormals.SetNumberOfTuples(polygonPolyData.GetNumberOfPoints())
 
-    vtknormals.SetTuple(0, [0, 1, 0])
-    vtknormals.SetTuple(1, [0, 1, 0])
-    vtknormals.SetTuple(2, [0, 1, 0])
-    vtknormals.SetTuple(3, [0, 1, 0])
+    for i in range(p):
+        vtknormals.SetTuple(0, normal)
 
     polygonPolyData.GetCellData().SetNormals(vtknormals)
 
