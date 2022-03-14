@@ -112,7 +112,7 @@ class Data:
             pos = glm.vec3(actor.GetPosition())
             if isinstance(obj.obj, vtk.vtkPolyData):
                 polydata = obj.obj
-                normals = obj.obj.GetCellData().GetNormals()
+                normals = obj.obj.GetPointData().GetNormals()
             else:
                 polydata = obj.obj.GetOutput()
                 vtknormal = vtk.vtkPolyDataNormals()
@@ -133,7 +133,7 @@ class Data:
                     obj.color * obj.diffuse,
                     glm.vec3(1, 1, 1),
                     obj.shininess,
-                    obj.shininess,
+                    obj.reflection,
                     pos,
                     glm.vec3(actor.GetOrientation()),
                 )

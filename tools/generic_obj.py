@@ -72,7 +72,7 @@ def generate_plane(width, z):
     vtknormals.SetTuple(2, [0, 1, 0])
     vtknormals.SetTuple(3, [0, 1, 0])
 
-    polygonPolyData.GetCellData().SetNormals(vtknormals)
+    polygonPolyData.GetPointData().SetNormals(vtknormals)
 
     obbtree = vtk.vtkOBBTree()
     obbtree.SetDataSet(polygonPolyData)

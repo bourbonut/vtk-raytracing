@@ -2,3 +2,8 @@
 VTK Raytracing
 
 ![](./poutine.png)
+
+
+# Theory
+
+![](./rayray.png)
