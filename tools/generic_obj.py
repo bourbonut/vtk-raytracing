@@ -26,6 +26,11 @@ def generate_sphere(phi, theta, center=(0.0, 0.0, 0.0), radius=5.0):
     source.SetThetaResolution(theta)
     source.Update()
 
+    # print(source.GetOutput().GetCell(0).GetPointIds().GetId(0))
+    # print(source.GetOutput().GetCell(0).GetPointIds().GetId(1))
+    # print(source.GetOutput().GetCell(0).GetPointIds().GetId(2))
+    # raise
+
     return source
 
 

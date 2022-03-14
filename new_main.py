@@ -89,15 +89,17 @@ class Window(QWidget):
 
         self.objects = [obj1, obj2, obj3, obj4]
         self.labels = ("Red sphere", "Violet sphere", "Green sphere", "White plane")
+        # self.objects = [obj4]
+        # self.labels = ["White plane"]
 
     def setup_objects(self):
         self.actors = []
         for i, obj in enumerate(self.objects):
             mapper = vtk.vtkPolyDataMapper()
-            if i != 3:
-                mapper.SetInputConnection(obj.obj.GetOutputPort())
-            else:
+            if isinstance(obj.obj, vtk.vtkPolyData):
                 mapper.SetInputData(obj.obj)
+            else:
+                mapper.SetInputConnection(obj.obj.GetOutputPort())
             actor = vtk.vtkActor()
             actor.SetMapper(mapper)
             actor.GetProperty().SetColor(obj.color)
