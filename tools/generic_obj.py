@@ -80,9 +80,10 @@ def generate_plane(width, z, normal=glm.vec3(0, 1, 0), translation=glm.vec3(0, 0
     vtknormals.SetNumberOfTuples(polygonPolyData.GetNumberOfPoints())
 
     for i in range(p):
-        vtknormals.SetTuple(0, normal)
+        vtknormals.SetTuple(i, normal)
 
-    polygonPolyData.GetCellData().SetNormals(vtknormals)
+    # polygonPolyData.GetCellData().SetNormals(vtknormals)
+    polygonPolyData.GetPointData().SetNormals(vtknormals)
 
     obbtree = vtk.vtkOBBTree()
     obbtree.SetDataSet(polygonPolyData)

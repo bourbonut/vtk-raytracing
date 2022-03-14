@@ -11,6 +11,7 @@ from collections import namedtuple
 SimpleObj = namedtuple(
     "SimpleObj",
     [
+        "polydata",
         "normals",
         "obbtree",
         "ambient",
@@ -49,9 +50,9 @@ def sphere_intersect(obj, ray_origin, ray_direction):
         cellIdsInter.append(cellIds.GetId(idx))
 
     if iD != 0:
-        return glm.length(pointsInter[0] - p1), cellIdsInter[0]
+        return glm.length(pointsInter[0] - p1), cellIdsInter[0], pointsInter[0]
     else:
-        return None, None
+        return None, None, None
 
 
 def nearest_intersected_object(objects, ray_origin, ray_direction):
@@ -59,36 +60,44 @@ def nearest_intersected_object(objects, ray_origin, ray_direction):
     nearest_object = None
     min_distance = inf
     subId = -1
-    for index, (distance, iD) in enumerate(distances):
+    target = []
+    for index, (distance, iD, x) in enumerate(distances):
         if distance and distance < min_distance:
             min_distance = distance
             nearest_object = objects[index]
             subId = iD
-    return nearest_object, min_distance, subId
+            target = x
+    return nearest_object, min_distance, subId, target
 
 
 def get_normals(obj):
     if isinstance(obj.obj, vtk.vtkPolyData):
-        return obj.obj.GetCellData().GetNormals()
+        polydata = obj.obj
+        normals = obj.obj.GetPointData().GetNormals()
+        return polydata, normals
     else:
+        polydata = obj.obj.GetOutput()
         vtknormal = vtk.vtkPolyDataNormals()
         vtknormal.SetInputConnection(obj.obj.GetOutputPort())
-        vtknormal.ComputePointNormalsOff()
+        vtknormal.ComputePointNormalsOn()
         vtknormal.ComputeCellNormalsOn()
         vtknormal.SplittingOff()
         vtknormal.FlipNormalsOff()
         vtknormal.AutoOrientNormalsOn()
         vtknormal.Update()
-        return vtknormal.GetOutput().GetCellData().GetNormals()
+        normals = vtknormal.GetOutput().GetPointData().GetNormals()
+        return polydata, normals
 
 
 class Data:
     def __init__(self, objects, actors, light, camera):
         self.objects = []
         for obj, actor in zip(objects, actors):
+            polydata, normals = get_normals(obj)
             self.objects.append(
                 SimpleObj(
-                    get_normals(obj),
+                    polydata,
+                    normals,
                     obj.obbtree,
                     obj.color * obj.ambient,
                     obj.color * obj.diffuse,
@@ -133,6 +142,18 @@ def change_reference(ref):
     return rotation, translation
 
 
+def interpolation(points, normals, target):
+    A, B, C = map(glm.vec3, points)
+    normals = list(map(glm.vec3, normals))
+    target = glm.vec3(target)
+    AC = A - C
+    BC = B - C
+    TC = target - C
+    u, v, _ = glm.inverse(glm.mat3(AC, BC, glm.cross(AC, BC))) * TC
+    w = 1 - u - v
+    return u * normals[0] + v * normals[1] + w * normals[2]
+
+
 def generate_image(objects, actors, light, camera, max_depth=3, width=300, height=200):
     # Parameters
     data = Data(objects, actors, light, camera)
@@ -159,18 +180,27 @@ def generate_image(objects, actors, light, camera, max_depth=3, width=300, heigh
 
                 for k in range(max_depth):
                     # check for intersections
-                    nearest_object, min_distance, subId = nearest_intersected_object(
+                    nearest_object, min_distance, subId, target = nearest_intersected_object(
                         data.objects, origin, direction
                     )
                     if nearest_object is None:
                         break
 
                     intersection = origin + min_distance * direction
-                    normal_to_surface = glm.normalize(nearest_object.normals.GetTuple(subId))
+                    points = [
+                        nearest_object.polydata.GetCell(subId).GetPoints().GetPoint(i)
+                        for i in range(3)
+                    ]
+                    ids = [
+                        nearest_object.polydata.GetCell(subId).GetPointIds().GetId(i)
+                        for i in range(3)
+                    ]
+                    normals = [nearest_object.normals.GetTuple(id_) for id_ in ids]
+                    normal_to_surface = glm.normalize(interpolation(points, normals, target))
                     shifted_point = intersection + 1e-5 * normal_to_surface
                     intersection_to_light = glm.normalize(data.light.position - shifted_point)
 
-                    _, min_distance, _ = nearest_intersected_object(
+                    _, min_distance, _, _ = nearest_intersected_object(
                         data.objects, shifted_point, intersection_to_light
                     )
                     intersection_to_light_distance = glm.length(

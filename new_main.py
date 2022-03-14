@@ -108,25 +108,17 @@ class Window(QWidget):
             generate_plane,
             zip(repeat(100), repeat(-20), self.PLANE_NORMALS, self.PLANE_TRANSLATIONS),
         )
-        # plane, obbtree = generate_plane(100, -20)
-        # plane2, obbtree2 = generate_plane(100, -30, glm.vec3(0, 0, 1), glm.vec3(0, -20, -30))
 
         obbtrees = [obbtree_bgear] + [make_obbtree(obj) for obj in (s2, s3)]
-        # obbtrees = (
-        #     [obbtree_bgear] + [make_obbtree(obj) for obj in (s2, s3)] + [obbtree, obbtree2]
-        # )
         obj1 = Object(bgear, obbtrees[0], vec3(1, 1, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0, 0, 0))
         obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(5, 0, -4))
         obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-6, -2, -3))
-        # obj4 = Object(plane, obbtrees[3], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
-        # obj5 = Object(plane2, obbtrees[4], vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
         objs = [
             Object(plane, obbtree, vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
             for plane, obbtree in planes_obbtrees
         ]
         self.objects = [obj1, obj2, obj3] + objs
 
-        # self.objects = [obj1, obj2, obj3, obj4, obj5]
         self.labels = ["Bevel gear", "Violet sphere", "Green sphere"] + ["White plane"] * len(
             objs
         )
