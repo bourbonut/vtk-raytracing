@@ -75,9 +75,9 @@ class Window(QWidget):
         self.resize(900, 1000)
 
     def generate_objects(self):
-        s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
-        s2 = generate_sphere(20, 20, center=(0.1, -0.3, 0), radius=0.1)
-        s3 = generate_sphere(20, 20, center=(-0.3, 0, 0), radius=0.15)
+        s1 = generate_sphere(150, 150, center=(-0.2, 0, -1), radius=0.7)
+        s2 = generate_sphere(150, 150, center=(0.1, -0.3, 0), radius=0.1)
+        s3 = generate_sphere(150, 150, center=(-0.3, 0, 0), radius=0.15)
         plane, obbtree = generate_plane(20, -0.7)
 
         vec3 = glm.vec3
