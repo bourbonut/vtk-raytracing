@@ -100,7 +100,7 @@ class Window(QWidget):
 
     def generate_objects(self):
         # s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
-        bgear, obbtree_bgear = open_stl("bevel_gear2.stl")
+        bgear, obbtree_bgear = open_stl("bevel_gear.ply")
         s2 = generate_sphere(150, 150, center=(5, 0, -4), radius=5)
         s3 = generate_sphere(150, 150, center=(-6, -2, -3), radius=3)
         vec3 = glm.vec3

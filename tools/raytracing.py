@@ -75,6 +75,10 @@ def get_normals(obj):
         polydata = obj.obj
         normals = obj.obj.GetPointData().GetNormals()
         return polydata, normals
+    elif isinstance(obj.obj, vtk.vtkPLYReader):
+        polydata = obj.obj.GetOutput()
+        normals = obj.obj.GetOutput().GetPointData().GetNormals()
+        return polydata, normals
     else:
         polydata = obj.obj.GetOutput()
         vtknormal = vtk.vtkPolyDataNormals()

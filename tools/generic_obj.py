@@ -93,7 +93,7 @@ def generate_plane(width, z, normal=glm.vec3(0, 1, 0), translation=glm.vec3(0, 0
 
 
 def open_stl(filename):
-    reader = vtk.vtkSTLReader()
+    reader = vtk.vtkPLYReader()
     reader.SetFileName(filename)
     reader.Update()
 
