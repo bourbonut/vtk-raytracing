@@ -40,15 +40,13 @@ class Window(QWidget):
         self.setup_camera()
         self.setup_light()
         self.renderer.SetBackground(colors.GetColor3d("Black"))
-        # self.renderer.SetBackground2(colors.GetColor3d("Black"))
-        # self.renderer.SetBackground(colors.GetColor3d("Silver"))
-        # self.renderer.SetGradientBackground(True)
         self.renderer.ResetCamera()
 
         self.iren.Initialize()
 
         grid = QGridLayout()
-        grid.addWidget(self.vtkWidget, 0, 0, 1, 0)
+        i = 0
+        grid.addWidget(self.vtkWidget, 0, 0, 0, 1)
         position = self.change_spin_position
         orientation = self.change_spin_orientation
         functions = [
@@ -57,22 +55,24 @@ class Window(QWidget):
             self.change_slider_scale,
         ]
         for actor, label in zip(self.actors, self.labels):
-            grid.addWidget(self.create_coord(actor, label, functions))
+            grid.addWidget(self.create_coord(actor, label, functions), i, 1)
+            i += 1
 
         functions = [self.change_spin_position, None, self.change_slider_intensity]
-        grid.addWidget(self.create_coord(self.light, "Light", functions))
+        grid.addWidget(self.create_coord(self.light, "Light", functions), i, 1)
         # grid.addWidget(self.create_coord(self.light, "Light" + " orientation", orientation), i, 1)
+        i += 1
 
         button = QPushButton()
         button.setText("Raytracing")
         button.clicked.connect(self.button_action)
-        grid.addWidget(button)
+        grid.addWidget(button, i, 1)
         # grid.addWidget(button, i + 1, 0, i + 1, 0)
 
         self.setLayout(grid)
 
         self.setWindowTitle("VTK Raytracing")
-        self.resize(900, 1000)
+        self.resize(1500, 800)
 
     def generate_objects(self):
         s1 = generate_sphere(150, 150, center=(-0.2, 0, -1), radius=0.7)
