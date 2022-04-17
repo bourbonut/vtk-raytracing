@@ -1,193 +1,248 @@
-import vtk
-from tools import *
-from tools.raytracing import *
-from rich.progress import Progress
-import glm
-import numpy as np
 from matplotlib import pyplot as plt
+import glm
+
+from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import (
+    QApplication,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QPushButton,
+    QRadioButton,
+    QDoubleSpinBox,
+    QWidget,
+    QSlider,
+)
+
+import sys
+from functools import partial
+from itertools import starmap, repeat
+from tools import *
 
 
-def generate_sphere(phi, theta, center=(0.0, 0.0, 0.0), radius=5.0):
-    source = vtk.vtkSphereSource()
+class Window(QWidget):
 
-    source.SetCenter(*center)
-    source.SetRadius(radius)
-    source.SetPhiResolution(phi)
-    source.SetThetaResolution(theta)
-    source.Update()
+    PLANE_NORMALS = [
+        glm.vec3(0, 1, 0),
+        glm.vec3(0, 0, 1),
+        # glm.vec3(1, 0, 0),
+        glm.vec3(0, -1, 0),
+        # glm.vec3(0, 0, -1),
+        glm.vec3(-1, 0, 0),
+    ]
 
-    return source
+    PLANE_TRANSLATIONS = [
+        glm.vec3(0, 0, 0),
+        glm.vec3(0, -30, -30),
+        # glm.vec3(-30, -30, 0),
+        glm.vec3(0, 100, 0),
+        # glm.vec3(0, -30, 30),
+        glm.vec3(30, -30, 0),
+    ]
+
+    def __init__(self):
+        super(Window, self).__init__()
+        self.generate_objects()
+
+        self.frame = QtWidgets.QFrame()
+        self.vtkWidget = QVTKRenderWindowInteractor(self.frame)
+
+        colors = vtk.vtkNamedColors()
+
+        self.renderer = vtk.vtkRenderer()
+        self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+        self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
+        self.setup_objects()
+        self.setup_camera()
+        self.setup_light()
+        self.renderer.SetBackground(colors.GetColor3d("Black"))
+        self.renderer.ResetCamera()
+
+        self.iren.Initialize()
+
+        grid = QGridLayout()
+        i = 0
+        grid.addWidget(self.vtkWidget, 0, 0, 0, 1)
+        position = self.change_spin_position
+        orientation = self.change_spin_orientation
+        functions = [
+            self.change_spin_position,
+            self.change_spin_orientation,
+            self.change_slider_scale,
+            lambda obj: obj.GetScale()[0] * 10,
+        ]
+        for actor, label in zip(self.actors, self.labels):
+            grid.addWidget(self.create_coord(actor, label, functions), i, 1)
+            i += 1
+
+        functions = [
+            self.change_spin_position,
+            None,
+            self.change_slider_intensity,
+            lambda obj: obj.GetIntensity() * 10,
+        ]
+        grid.addWidget(self.create_coord(self.light, "Light", functions), i, 1)
+        i += 1
+
+        button = QPushButton()
+        button.setText("Raytracing")
+        button.clicked.connect(self.button_action)
+        grid.addWidget(button, i, 1)
+
+        self.setLayout(grid)
+
+        self.setWindowTitle("VTK Raytracing")
+        self.resize(1500, 800)
+
+    def generate_objects(self):
+        # s1 = generate_sphere(20, 20, center=(-0.2, 0, -1), radius=0.7)
+        bgear, obbtree_bgear = open_stl("./3d-objects/bevel_gear.ply")
+        s2 = generate_sphere(150, 150, center=(5, 0, -4), radius=5)
+        s3 = generate_sphere(150, 150, center=(-6, -2, -3), radius=3)
+        vec3 = glm.vec3
+        planes_obbtrees = starmap(
+            generate_plane,
+            zip(repeat(100), repeat(-20), self.PLANE_NORMALS, self.PLANE_TRANSLATIONS),
+        )
+
+        obbtrees = [obbtree_bgear] + [make_obbtree(obj) for obj in (s2, s3)]
+        obj1 = Object(bgear, obbtrees[0], vec3(1, 1, 1), 0.1, 0.7, 1, 100, 0.5, vec3(0, 0, 0))
+        obj2 = Object(s2, obbtrees[1], vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, vec3(5, 0, -4))
+        obj3 = Object(s3, obbtrees[2], vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, vec3(-6, -2, -3))
+        objs = [
+            Object(plane, obbtree, vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, vec3(0, 0, 0))
+            for plane, obbtree in planes_obbtrees
+        ]
+        self.objects = [obj1, obj2, obj3] + objs
+
+        self.labels = ["Bevel gear", "Violet sphere", "Green sphere"] + ["White plane"] * len(
+            objs
+        )
+
+    def setup_objects(self):
+        self.actors = []
+        for i, obj in enumerate(self.objects):
+            mapper = vtk.vtkPolyDataMapper()
+            if isinstance(obj.obj, vtk.vtkPolyData):
+                mapper.SetInputData(obj.obj)
+            else:
+                mapper.SetInputConnection(obj.obj.GetOutputPort())
+            actor = vtk.vtkActor()
+            actor.SetMapper(mapper)
+            actor.GetProperty().SetColor(obj.color)
+            actor.GetProperty().SetAmbient(obj.ambient)
+            actor.GetProperty().SetDiffuse(obj.diffuse)
+            actor.GetProperty().SetSpecular(obj.specular)
+            actor.SetPosition(obj.position)
+            self.actors.append(actor)
+            self.renderer.AddActor(actor)
+
+    def setup_camera(self):
+        vtkcamera = vtk.vtkCamera()
+        self.renderer.SetActiveCamera(vtkcamera)
+        self.camera = Camera(self.renderer.GetActiveCamera())
+        self.camera.cam.SetPosition(-0.5, 0.2, 1)
+        self.camera.position = self.camera.cam.GetPosition()
+        self.iren.AddObserver("EndInteractionEvent", self.camera.get_orientation)
+
+    def setup_light(self):
+        self.light = vtk.vtkLight()
+        self.light.SetPosition([18, 18, 18])
+        self.light.SetConeAngle(30)
+        self.light.SetFocalPoint(self.actors[0].GetPosition())
+        self.light.PositionalOn()
+        self.renderer.AddLight(self.light)
+        self.light_actor = vtk.vtkLightActor()
+        self.light_actor.SetLight(self.light)
+        self.renderer.AddViewProp(self.light_actor)
+        self.renderer.UseShadowsOn()
+
+    def change_spin_position(self, value, obj, index):
+        coord = list(obj.GetPosition())
+        coord[index] = float(value.replace(",", "."))
+        obj.SetPosition(*coord)
+        self.vtkWidget.GetRenderWindow().Render()
+
+    def change_spin_orientation(self, value, obj, index):
+        coord = list(obj.GetOrientation())
+        coord[index] = float(value.replace(",", "."))
+        obj.SetOrientation(*coord)
+        self.vtkWidget.GetRenderWindow().Render()
+
+    def change_slider_scale(self, value, obj):
+        obj.SetScale(value / 10)
+        self.vtkWidget.GetRenderWindow().Render()
+
+    def change_slider_intensity(self, value, obj):
+        obj.SetIntensity(value / 10)
+        self.vtkWidget.GetRenderWindow().Render()
+
+    def generate_spins(self, obj, function, coords):
+        spins = [QDoubleSpinBox() for _ in range(3)]
+        for i, spin in enumerate(spins):
+            spin.setMinimum(-5000)
+            spin.setMaximum(5000)
+            spin.setValue(coords[i])
+            f = partial(function, obj=obj, index=i)
+            spins[i].textChanged.connect(f)
+        return spins
+
+    def create_coord(self, obj, title, functions):
+        groupBox = QGroupBox(title)
+
+        radio = QRadioButton("&Activate")
+        radio.setChecked(True)
+
+        box = QGridLayout()
+        spins = {}
+        slider = None
+        if functions[0]:
+            coords = list(obj.GetPosition())
+            spins["position"] = self.generate_spins(obj, functions[0], coords)
+        if functions[1]:
+            coords = list(obj.GetOrientation())
+            spins["orientation"] = self.generate_spins(obj, functions[1], coords)
+        if functions[2]:
+            slider = QSlider(Qt.Horizontal)
+            slider.setFocusPolicy(Qt.StrongFocus)
+            slider.setTickPosition(QSlider.TicksBothSides)
+            slider.setTickInterval(10)
+            slider.setSingleStep(1)
+            slider.setValue(functions[3](obj))
+            f = partial(functions[2], obj=obj)
+            slider.valueChanged.connect(f)
+
+        i = 0
+        j = 0
+        for key in spins:
+            label = QLabel(key.title())
+            box.addWidget(label, 2, j)
+            for spin in spins[key]:
+                box.addWidget(spin, 3, i)
+                i += 1
+            j += 3
+
+        # box.addWidget(radio, 0, 1, QtCore.Qt.AlignCenter)
+        if slider:
+            box.addWidget(slider, 4, 0, 4, 0)
+        groupBox.setLayout(box)
+
+        return groupBox
+
+    def button_action(self):
+        image = generate_image(
+            self.objects, self.actors, self.light, self.camera, width=300 * 3, height=200 * 3
+        )
+        plt.imsave("./images/output.png", image)
+        print("Saved.")
 
 
-def make_obbtree(obj):
-    ot = vtk.vtkOBBTree()
-    ot.SetDataSet(obj.GetOutput())
-    ot.BuildLocator()
-    return ot
-
-
-def generate_plane(width, z):
-    points = vtk.vtkPoints()
-    w = width / 2
-    points.InsertNextPoint(-w, z, -w)
-    points.InsertNextPoint(w, z, -w)
-    points.InsertNextPoint(w, z, w)
-    points.InsertNextPoint(-w, z, w)
-
-    # Create the polygon
-    polygon = vtk.vtkPolygon()
-    polygon.GetPoints().DeepCopy(points)
-    polygon.GetPointIds().SetNumberOfIds(4)
-    for i in range(4):
-        polygon.GetPointIds().SetId(i, i)
-
-    polygons = vtk.vtkCellArray()
-    polygons.InsertNextCell(polygon)
-
-    polygonPolyData = vtk.vtkPolyData()
-    polygonPolyData.SetPoints(points)
-    polygonPolyData.SetPolys(polygons)
-
-    return polygonPolyData, polygon
-
-
-s1 = generate_sphere(3 * 50, 3 * 50, center=(-0.2, 0, -1), radius=0.7)
-s2 = generate_sphere(3 * 50, 3 * 50, center=(0.1, -0.3, 0), radius=0.1)
-s3 = generate_sphere(3 * 50, 3 * 50, center=(-0.3, 0, 0), radius=0.15)
-# s4 = generate_sphere(50, 50, center=(0, -9000, 0), radius=9000 - 0.7)
-plane, obbtree = generate_plane(9000, -0.7)
-
-obbtrees = [make_obbtree(obj) for obj in (s1, s2, s3)] + [obbtree]
-
-
-objects = [
-    Object(s1, obbtrees[0], glm.vec3(1, 0, 0), 0.1, 0.7, 1, 100, 0.5, glm.vec3(-0.2, 0, -1)),
-    Object(s2, obbtrees[1], glm.vec3(1, 0, 1), 0.1, 0.7, 1, 100, 0.5, glm.vec3(0.1, -0.3, 0)),
-    Object(s3, obbtrees[2], glm.vec3(0, 1, 0), 0.1, 0.6, 1, 100, 0.5, glm.vec3(-0.3, 0, 0)),
-    Object(plane, obbtrees[3], glm.vec3(1, 1, 1), 0.1, 0.6, 1, 100, 0.5, glm.vec3(0, -9000, 0)),
-]
-
-ren = vtk.vtkRenderer()
-
-for i, obj in enumerate(objects):
-    mapper = vtk.vtkPolyDataMapper()
-    if i != 3:
-        mapper.SetInputConnection(obj.obj.GetOutputPort())
-    else:
-        mapper.SetInputData(obj.obj)
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
-    actor.GetProperty().SetColor(obj.color)
-    actor.GetProperty().SetAmbient(obj.ambient)
-    actor.GetProperty().SetDiffuse(obj.diffuse)
-    actor.GetProperty().SetSpecular(obj.specular)
-    # actor.AddPosition(obj.position)
-    ren.AddActor(actor)
-
-renWin = vtk.vtkRenderWindow()
-renWin.AddRenderer(ren)
-iren = vtk.vtkRenderWindowInteractor()
-iren.SetRenderWindow(renWin)
-
-vtkcamera = vtk.vtkCamera()
-ren.SetActiveCamera(vtkcamera)
-cam = Camera(ren.GetActiveCamera())
-iren.AddObserver("EndInteractionEvent", cam.get_orientation)
-
-renWin.SetSize(512, 512)
-renWin.Render()
-renWin.SetWindowName("CallBack")
-
-iren.Initialize()
-iren.Start()
-
-raise
-
-width = 300 * 3
-height = 200 * 3
-max_depth = 3
-
-# camera = glm.vec3(cam.position)
-camera = glm.vec3(0, 0, 1)
-ratio = width / height
-screen = (-1, 1 / ratio, 1, -1 / ratio)
-
-
-light = {
-    "position": glm.vec3(5, 5, 5),
-    "ambient": glm.vec3(1, 1, 1),
-    "diffuse": glm.vec3(1, 1, 1),
-    "specular": glm.vec3(1, 1, 1),
-}
-
-image = np.zeros((height, width, 3))
-with Progress(auto_refresh=False) as progress:
-    task = progress.add_task("Generating ...", total=height)
-    for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
-        for j, x in enumerate(np.linspace(screen[0], screen[2], width)):
-            # screen is on origin
-            pixel = glm.vec3(x, y, 0)
-            origin = camera
-            direction = glm.normalize(pixel - origin)
-
-            color = glm.vec3()
-            reflection = 1
-
-            for k in range(max_depth):
-                # check for intersections
-                nearest_object, min_distance = nearest_intersected_object(
-                    objects, origin, direction
-                )
-                if nearest_object is None:
-                    break
-
-                intersection = origin + min_distance * direction
-                normal_to_surface = glm.normalize(intersection - nearest_object.position)
-                shifted_point = intersection + 1e-5 * normal_to_surface
-                intersection_to_light = glm.normalize(light["position"] - shifted_point)
-
-                _, min_distance = nearest_intersected_object(
-                    objects, shifted_point, intersection_to_light
-                )
-                intersection_to_light_distance = glm.length(light["position"] - intersection)
-                is_shadowed = min_distance < intersection_to_light_distance
-
-                if is_shadowed:
-                    break
-
-                illumination = glm.vec3()
-
-                # ambiant
-                illumination += (nearest_object.color * nearest_object.ambient) * light[
-                    "ambient"
-                ]
-
-                # diffuse
-                illumination += (
-                    (nearest_object.color * nearest_object.diffuse)
-                    * light["diffuse"]
-                    * glm.dot(intersection_to_light, normal_to_surface)
-                )
-
-                # specular
-                intersection_to_camera = glm.normalize(camera - intersection)
-                H = glm.normalize(intersection_to_light + intersection_to_camera)
-                illumination += (
-                    (glm.vec3(1) * nearest_object.specular)
-                    * light["specular"]
-                    * glm.dot(normal_to_surface, H) ** (nearest_object.shininess / 4)
-                )
-
-                # reflection
-                color += reflection * illumination
-                reflection *= nearest_object.reflection
-
-                origin = shifted_point
-                direction = reflected(direction, normal_to_surface)
-
-            image[i, j] = np.clip(color, 0, 1)
-        # print("%d/%d" % (i + 1, height))
-        progress.advance(task)
-        progress.refresh()
-
-plt.imsave("poutine.png", image)
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    clock = Window()
+    clock.show()
+    sys.exit(app.exec_())
