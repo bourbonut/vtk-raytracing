@@ -168,6 +168,15 @@ def generate_data(objects, labels=None):
                 mapper.SetInputData(obj)
                 # mapper.SetInputConnection(obj.GetOutputPort())
                 actors.append(_generate_actor(mapper, material, position))
+        elif objtype == "plane":
+            normal = PLANE_NORMALS[0]
+            translation = PLANE_TRANSLATIONS[0]
+            obj = _generate_plane(100, arguments[0], normal, translation)
+            obbtree = _generate_obbtree(obj, False)
+            processed_objects.append(Object(obj, obbtree, material, position))
+            mapper = vtk.vtkPolyDataMapper()
+            mapper.SetInputData(obj)
+            actors.append(_generate_actor(mapper, material, position))
         else:
             raise Exception(f'"{objtype}" type not implemented')
 

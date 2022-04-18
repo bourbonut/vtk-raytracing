@@ -49,6 +49,7 @@ class Window(QWidget):
     def __init__(self, config):
         super(Window, self).__init__()
         self.width, self.height, self.zoom, self.max_depth = config["scene"]
+        self.name = config["name"]
         data = generate_data(config["objects"], config["labels"])
         self.objects, self.labels, self.actors = data
 
@@ -197,5 +198,5 @@ class Window(QWidget):
     def button_action(self):
         scene = Scene(self.objects, self.actors, self.light, self.camera)
         image = generate_image(scene, self.max_depth, self.width, self.height, self.zoom)
-        plt.imsave("./images/output.png", image)
+        plt.imsave(f"./images/{self.name}.png", image)
         print("Saved.")

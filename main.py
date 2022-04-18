@@ -4,7 +4,7 @@ import sys
 import json
 
 if __name__ == "__main__":
-    with open("config.json", "r") as f:
+    with open("simple-config.json", "r") as f:
         configuration = json.load(f)
     app = QApplication(sys.argv)
     main_window = Window(configuration)

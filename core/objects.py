@@ -70,7 +70,7 @@ class Scene:
         create = lambda obj, actor: Object(Data(obj), Material(obj), pos(actor), orient(actor))
         self.objects = [create(obj, actor) for obj, actor in zip(objects, actors)]
         self.light = Light(light.GetPosition())
-        self.camera = glm.vec3(camera.GetPosition())
+        self.camera = glm.vec3(camera.GetPosition()) / 5
         if display:
             self.print_informations()
 

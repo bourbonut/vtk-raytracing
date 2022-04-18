@@ -1,0 +1,30 @@
+{
+  "scene": [900, 600, 1, 3],
+  "objects": [
+    {
+      "item": ["sphere", [150, 150, [-0.2, 0, -1], 0.7]],
+      "material": [[1, 0, 0], 0.1, 0.7, 1, 100, 0.5],
+      "position": [-0.2, 0, -1]
+    },
+    {
+      "item": ["sphere", [150, 150, [0.1, -0.3, 0], 0.1]],
+      "material": [[1, 0, 1], 0.1, 0.7, 1, 100, 0.5],
+      "position": [0.1, -0.3, 0]
+    },
+    {
+      "item": ["sphere", [150, 150, [-0.3, 0, 0], 0.15]],
+      "material": [[0, 1, 0], 0.1, 0.6, 1, 100, 0.5],
+      "position": [-0.3, 0, 0]
+    },
+    {
+      "item": ["plane", [-0.7]],
+      "material": [[1, 1, 1], 0.1, 0.6, 1, 100, 0.5],
+      "position": [0, 0, 0]
+    }
+  ],
+  "labels": ["Red sphere", "Violet sphere", "Green sphere", "$PLANES"],
+  "camera": [0, 0, 1],
+  "light": [[5, 5, 5], 30],
+  "target": 0,
+  "name": "simple"
+}
