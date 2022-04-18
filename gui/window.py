@@ -1,5 +1,5 @@
 from core import generate_image, Scene
-from .generators import *
+from core.generators import *
 from functools import partial
 
 from matplotlib import pyplot as plt

@@ -14,6 +14,10 @@ class Data:
         if isinstance(obj.item, vtk.vtkPolyData):  # Planes
             polydata = obj.item
             normals = obj.item.GetPointData().GetNormals()
+            # Need to flip normals because of VTK ...
+            for i in range(4):
+                n = normals.GetTuple(i)
+                normals.SetTuple(i, -glm.vec3(n))
         elif isinstance(obj.item, vtk.vtkPLYReader):  # Ply object
             polydata = obj.item.GetOutput()
             normals = obj.item.GetOutput().GetPointData().GetNormals()

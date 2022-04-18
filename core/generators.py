@@ -110,7 +110,7 @@ def _generate_plane(width, z, normal, translation):
     vtknormals.SetNumberOfComponents(3)
     vtknormals.SetNumberOfTuples(polygonPolyData.GetNumberOfPoints())
     for i in range(p):
-        vtknormals.SetTuple(i, normal)
+        vtknormals.SetTuple(i, -normal)
     polygonPolyData.GetPointData().SetNormals(vtknormals)
 
     return polygonPolyData
