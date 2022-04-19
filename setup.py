@@ -6,6 +6,7 @@ setup(
     python_requires=">=3.7.11",
     install_requires=[
         "vtk>=9.1.0",
+        "matplotlib>=3.5.1",
         "numpy>=1.21.5",
         "pyglm>=2.5.7",
         "PyQt5>=5.15.6",
