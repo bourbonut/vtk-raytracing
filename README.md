@@ -36,8 +36,8 @@ def sphere_intersect(center, radius, ray_origin, ray_direction):
 ## VTK approach
 
 Whereas with VTK, there are several aspects to deal with :
-- **intersection** : get intersection coordinates, intersected triangle and their normales
-- **interpolation** : get the interpolated normale according to the data collected
+- **intersection** : get intersection coordinates, intersected triangle and their normales.
+- **interpolation** : get the interpolated normale according to the data collected.
 
 Intersection function :
 ```python
