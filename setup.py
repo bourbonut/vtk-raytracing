@@ -2,7 +2,6 @@
 from setuptools import setup
 
 setup(
-    # package declaration
     name="vtk-raytracing",
     python_requires=">=3.7.11",
     install_requires=[
@@ -12,7 +11,6 @@ setup(
         "PyQt5>=5.15.6",
         "rich-cli>=1.5.1",
     ],
-    # metadata for pypi
     license="GNU LGPL v3",
     author="Benjamin Bourbon",
     author_email="ben.bourbon06@gmail.com",
