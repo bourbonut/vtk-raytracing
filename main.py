@@ -1,12 +1,15 @@
-from gui import Window
+from gui import Window, CurseApp
 from PyQt5.QtWidgets import QApplication
-import sys
-import json
+import sys, json, curses
 
 if __name__ == "__main__":
-    with open("simple-config.json", "r") as f:
-        configuration = json.load(f)
-    app = QApplication(sys.argv)
-    main_window = Window(configuration)
-    main_window.show()
-    sys.exit(app.exec_())
+    cursesapp = curses.wrapper(CurseApp)
+    selection_index = cursesapp.menu.position
+    if selection_index != -1:
+        selection = cursesapp.filenames[selection_index]
+        with open(f"./configurations/{selection}", "r") as f:
+            configuration = json.load(f)
+        app = QApplication(sys.argv)
+        main_window = Window(configuration)
+        main_window.show()
+        sys.exit(app.exec_())
