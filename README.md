@@ -138,7 +138,7 @@ Name of the simulation : spheres
 To quit the "describer menu", use left or up or down arrow.
 
 Once you select a configuration, the program opens a window where you can see the scene before raytracing :
-
+![gui-example](./images/gui-example.png)
 
 Now, you can move the camera, objects.
 To start the raytracing algorithm, simply press the "Raytracing button".
