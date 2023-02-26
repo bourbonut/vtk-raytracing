@@ -11,7 +11,9 @@ The goal of this project is to use [VTK](https://pypi.org/project/vtk/) with Pyt
 ```
 git clone https://github.com/bourbonut/vtk-raytracing
 cd vtk-raytracing
-python3 setup.py install
+python -m venv virtualenv
+source virtualenv/bin/activate
+pip install -r requirements.txt
 ```
 
 ## Theoretical approach
@@ -36,8 +38,8 @@ def sphere_intersect(center, radius, ray_origin, ray_direction):
 ## VTK approach
 
 Whereas with VTK, there are several aspects to deal with :
-- **intersection** : get intersection coordinates, intersected triangle and their normales.
-- **interpolation** : get the interpolated normale according to the data collected.
+- **intersection** : get intersection coordinates, intersected triangle and their normal.
+- **interpolation** : get the interpolated normal according to the data collected.
 
 Intersection function :
 ```python
@@ -145,6 +147,6 @@ To start the raytracing algorithm, simply press the "Raytracing button".
 
 ## Improvements to do
 
-1. Unfortunatly, changing position/orientation of objects with GUI controllers doesn't affect real position / orientation (but light and camera are taken into account).
+1. Unfortunately, changing position/orientation of objects with GUI controllers doesn't affect real position / orientation (but light and camera are taken into account).
 2. Zoom must be changed manually in configuration files (and also width and height).
 3. Camera controllability is not convenient.
