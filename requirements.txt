@@ -1,0 +1,6 @@
+vtk>=9.1.0
+matplotlib>=3.5.1
+numpy>=1.21.5
+pyglm>=2.5.7
+PyQt5>=5.15.6
+rich-cli>=1.5.1
